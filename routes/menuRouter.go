@@ -5,7 +5,7 @@ import (
 	controller "github.com/kamilrahmatullin/restaurant-management/controllers"
 )
 
-func MenuRouter(router *gin.Engine) {
+func MenuRoutes(router *gin.Engine) {
 	menuGroup := router.Group("/menus")
 	{
 		menuGroup.GET("/", controller.GetMenu())
