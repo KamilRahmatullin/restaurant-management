@@ -5,5 +5,5 @@ import (
 )
 
 func main() {
-	port := env.GetValue("PORT", "8080")
+	port := env.GetValue("PORT", "8000")
 }
