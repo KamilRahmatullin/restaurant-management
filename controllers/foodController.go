@@ -20,13 +20,16 @@ func GetFoods() gin.HandlerFunc {
 
 func GetFood() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
+		// creating a context with possibility to time out
 		c, cancel := context.WithTimeout(context.Background(), time.Second*30)
 		defer cancel()
 
+		// fetching food id from context
 		foodId := ctx.Param("food_id")
 
 		food := models.Food{}
 
+		// looking for food id in database
 		if err := foodCollection.FindOne(c, bson.M{"food_id": foodId}).Decode(&food); err != nil {
 			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "error occured while fetching the food item"})
 		}
