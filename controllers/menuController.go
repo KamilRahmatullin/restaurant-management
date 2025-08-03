@@ -16,11 +16,12 @@ func GetMenu() gin.HandlerFunc {
 
 func GetMenus() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
+		// creating context with timeout
 		c, cancel := context.WithTimeout(context.Background(), 100*time.Second)
-
-		result, err := menuCollection.Find(context.TODO(), bson.M{})
-
 		defer cancel()
+
+		// looking for all the menus in database
+		result, err := menuCollection.Find(context.TODO(), bson.M{})
 
 		if err != nil {
 			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "error occured while listing the menu items"})
