@@ -123,7 +123,7 @@ func UpdateMenu() gin.HandlerFunc {
 			}
 
 			if menu.Category != "" {
-				updateObj = append(updateObj, bson.E{Key: "name", Value: menu.Category})
+				updateObj = append(updateObj, bson.E{Key: "category", Value: menu.Category})
 			}
 
 			menu.Updated_at, _ = time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
