@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math"
 	"net/http"
 	"strconv"
 	"time"
@@ -15,7 +16,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"golang.org/x/tools/go/analysis/passes/nilness"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 var foodCollection *mongo.Collection = database.OpenCollection(database.Client, "food")
@@ -142,13 +143,79 @@ func CreateFood() gin.HandlerFunc {
 }
 
 func UpdateFood() gin.HandlerFunc {
-	return func(ctx *gin.Context) {}
+	return func(ctx *gin.Context) {
+		c, cancel := context.WithTimeout(context.Background(), time.Second*30)
+		defer cancel()
+
+		menu := models.Menu{}
+		food := models.Food{}
+
+		foodId := ctx.Param("food_id")
+
+		if err := ctx.BindJSON(&food); err != nil {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		var updateObj primitive.D
+
+		if food.Name != nil {
+			updateObj = append(updateObj, bson.E{Key: "name", Value: food.Name})
+		}
+
+		if food.Price != nil {
+			updateObj = append(updateObj, bson.E{Key: "price", Value: food.Price})
+		}
+
+		if food.Food_image != nil {
+
+			updateObj = append(updateObj, bson.E{Key: "food_image", Value: food.Food_image})
+		}
+
+		if food.Menu_id != nil {
+			if err := menuCollection.FindOne(c, bson.M{"menu_id": food.Menu_id}).Decode(&menu); err != nil {
+				msg := fmt.Sprintf("Menu was not found")
+				ctx.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+				return
+			}
+
+			updateObj = append(updateObj, bson.E{Key: "menu_id", Value: menu.Menu_id})
+		}
+
+		food.Updated_at, _ = time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
+		updateObj = append(updateObj, bson.E{Key: "updated_at", Value: food.Updated_at})
+
+		upsert := true
+		filter := bson.M{"food_id": foodId}
+
+		opt := options.UpdateOptions{
+			Upsert: &upsert,
+		}
+
+		result, err := foodCollection.UpdateOne(
+			c,
+			filter,
+			bson.D{
+				{Key: "$set", Value: updateObj},
+			},
+			&opt,
+		)
+
+		if err != nil {
+			msg := fmt.Sprintf("food item update failed")
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+			return
+		}
+
+		ctx.JSON(http.StatusOK, result)
+	}
 }
 
 func round(num float64) int {
-
+	return int(num + math.Copysign(0.5, num))
 }
 
 func toFixed(num float64, precision int) float64 {
-
+	output := math.Pow(10, float64(precision))
+	return float64(round(num*output)) / output
 }
